@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Premium Video Streaming</title>
+  <style>
+    :root {
+      --primary: #e50914;
+      --primary-dark: #b2070f;
+      --dark: #141414;
+      --dark-secondary: #222;
+      --light: #fff;
+      --light-gray: #e5e5e5;
+      --gray: #999;
+      --gap: 20px;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background-color: var(--dark);
+      color: var(--light);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      padding: 0;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .pinned-video-container {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--dark);
+      padding: 15px 0;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+    }
+    
+    .pinned-video-wrapper {
+      position: relative;
+      width: 100%;
+      padding-top: 56.25%;
+      margin-bottom: 15px;
+      background: #000;
+    }
+    
+    .pinned-video-wrapper iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    
+    .pinned-video-info {
+      padding: 0 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .pinned-video-title {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    
+    .close-pinned {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s ease;
+    }
+    
+    .close-pinned:hover {
+      background: var(--primary-dark);
+    }
+    
+    .video-list-container {
+      margin-top: 30px;
+    }
+    
+    .section-title {
+      font-size: 24px;
+      margin-bottom: 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+    }
+    
+    .section-title i {
+      margin-right: 10px;
+      color: var(--primary);
+    }
+    
+    .movies-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: var(--gap);
+      margin-bottom: 40px;
+    }
+    
+    .movie-card {
+      background-color: var(--dark-secondary);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .movie-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+    }
+    
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      padding-top: 56.25%;
+      background-color: #000;
+    }
+    
+    .video-wrapper iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    
+    .movie-info {
+      padding: 15px;
+    }
+    
+    .movie-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .movie-quality {
+      font-size: 14px;
+      color: var(--gray);
+      margin-top: 5px;
+    }
+    
+    .status-message {
+      text-align: center;
+      padding: 30px;
+      background: var(--dark-secondary);
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    
+    .status-message.loading {
+      display: none;
+      margin: 20px auto;
+      padding: 20px;
+      background: var(--dark-secondary);
+      border-radius: 8px;
+      text-align: center;
+      max-width: 300px;
+    }
+    
+    #loadingIndicator.active {
+      display: flex;
+    }
+    
+    .loading {
+      display: flex;
+      flex-directionInteger;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--gray);
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    @media (max-width: 768px) {
+      .movies-grid {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      }
+      
+      .pinned-video-title {
+        font-size: 18px;
+      }
+      
+      .container {
+        padding: 15px;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+  <div class="container">
+    <div class="pinned-video-container" id="pinnedVideoContainer" style="display: none;">
+      <div class="pinned-video-wrapper">
+        <iframe id="pinnedVideoPlayer" allow="autoplay; fullscreen" allowfullscreen></iframe>
+      </div>
+      <div class="pinned-video-info">
+        <div class="pinned-video-title" id="pinnedVideoTitle"></div>
+        <button class="close-pinned" id="closePinnedBtn"><i class="fas fa-times"></i> Close</button>
+      </div>
+    </div>
+    
+    <div class="video-list-container">
+      <h2 class="section-title"><i class="fas fa-film"></i> Featured Videos</h2>
+      <div class="movies-grid" id="moviesGrid">
+        <!-- Videos will be dynamically added here -->
+      </div>
+      <div class="status WIDE-message loading" id="loadingIndicator" style="display: none;">
+        <div class="spinner"></div>
+        <p>Loading videos...</p>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // DOM Elements
+      const pinnedVideoContainer = document.getElementById('pinnedVideoContainer');
+      const pinnedVideoPlayer = document.getElementById('pinnedVideoPlayer');
+      const pinnedVideoTitle = document.getElementById('pinnedVideoTitle');
+      const closePinnedBtn = document.getElementById('closePinnedBtn');
+      const moviesGrid = document.getElementById('moviesGrid');
+      const loadingIndicator = document.getElementById('loadingIndicator');
+
+      // Track currently pinned video and loaded videos
+      let currentlyPinnedVideo = null;
+      let currentVideos = []; // Store all video data
+      let loadedVideoCount = 0; // Track number of videos rendered
+      const INITIAL_LOAD_COUNT = 25; // Initial number of videos to load
+      const LOAD_MORE_COUNT = 10; // Number of videos to load on scroll
+
+      // Google Sheets Configuration
+      const sheetID = '1gAasooaqLU_QUrOnfpnmGOULvyHxkvjEjIy02JO00yQ';
+      const sheetName = 'Sheet1';
+      const apiUrl = `https://opensheet.elk.sh/${sheetID}/${sheetName}`;
+
+      // Local Storage Keys
+      const VIDEO_CACHE_KEY = 'videoData';
+      const PINNED_VIDEO_KEY = 'pinnedVideo';
+      const CACHE_TIMESTAMP_KEY = 'videoCacheTimestamp';
+      const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
+      const UPDATE_INTERVAL = 30 * 1000; // 30 seconds for live update
+      const MAX_RETRIES = 2; // Number of API retry attempts
+
+      /**
+       * Show the loading indicator
+       */
+      function showLoadingIndicator() {
+        loadingIndicator.classList.add('active');
+      }
+
+      /**
+       * Hide the loading indicator
+       */
+      function hideLoadingIndicator() {
+        loadingIndicator.classList.remove('active');
+      }
+
+      /**
+       * Display error message
+       * @param {string} message - The error message to display
+       */
+      function displayError(message) {
+        console.error('Error displayed:', message);
+        hideLoadingIndicator();
+        moviesGrid.innerHTML = `
+          <div class="status-message">
+            <p><i class="fas fa-exclamation-triangle"></i> ${message}</p>
+            <p>Please try refreshing the page</p>
+          </div>
+        `;
+      }
+
+      /**
+       * Convert video URL to embed URL
+       * @param {string} link - Original video URL
+       * @returns {string|null} Embed URL or null if invalid
+       */
+      function getEmbedUrl(link) {
+        if (!link) {
+          console.warn('Invalid or empty video link');
+          return null;
+        }
+
+        if (link.includes('youtube.com') || link.includes('youtu.be')) {
+          let videoID = '';
+          if (link.includes('v=')) {
+            videoID = link.split('v=')[1].split('&')[0];
+          } else if (link.includes('youtu.be/')) {
+            videoID = link.split('youtu.be/')[1];
+          }
+          if (videoID) {
+            return `https://www.youtube.com/embed/${videoID}?rel=0&modestbranding=1&autoplay=0`;
+          }
+        } else if (link.includes('drive.google.com')) {
+          return link.replace('/view?usp=sharing', '/preview')
+                    .replace('/view', '/preview') + '?autoplay=0';
+        } else if (link.includes('kinescope.io')) {
+          const idMatch = link.match(/kinescope\.io\/([a-zA-Z0-9]+)/);
+          if (idMatch && idMatch[1]) {
+            return `https://kinescope.io/embed/${idMatch[1]}?autoplay=0`;
+          }
+        }
+        console.warn('Unsupported video link:', link);
+        return null;
+      }
+
+      /**
+       * Close the pinned video player
+       */
+      function closePinnedVideo() {
+        pinnedVideoContainer.style.display = 'none';
+        pinnedVideoPlayer.src = '';
+        pinnedVideoTitle.textContent = '';
+        currentlyPinnedVideo = null;
+        localStorage.removeItem(PINNED_VIDEO_KEY);
+        console.log('Pinned video closed');
+      }
+
+      /**
+       * Pin a video to the top of the page
+       * @param {string} videoId - Unique ID for the video
+       * @param {string} videoSrc - Embed URL of the video
+       * @param {string} videoTitle - Title of the video
+       */
+      function pinVideo(videoId, videoSrc, videoTitle) {
+        if (currentlyPinnedVideo === videoId) return;
+
+        pinnedVideoContainer.style.display = 'block';
+        pinnedVideoTitle.textContent = videoTitle;
+        pinnedVideoPlayer.src = videoSrc.replace('autoplay=0', 'autoplay=1');
+        currentlyPinnedVideo = videoId;
+
+        localStorage.setItem(PINNED_VIDEO_KEY, JSON.stringify({
+          videoId,
+          videoSrc,
+          videoTitle
+        }));
+        console.log('Pinned video:', { videoId, videoTitle });
+
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      }
+
+      /**
+       * Create a video card element
+       * @param {Object} video - Video data object
+       * @param {number} index - Index of the video
+       * @returns {HTMLElement} The created video card element
+       */
+      function createVideoCard(video, index) {
+        const name = video['Name'] || 'Untitled Video';
+        const quality = video['1080p'] ? '1080p' : video['720p'] ? '720p' : video['480p'] ? '480p' : '';
+        const link = video['1080p'] || video['720p'] || video['480p'] || '';
+
+        const embedURL = getEmbedUrl(link);
+        if (!embedURL) return null;
+
+        const videoId = `video-${index + 1}`;
+
+        const movieCard = document.createElement('div');
+        movieCard.className = 'movie-card';
+        movieCard.setAttribute('data-video-id', videoId);
+        movieCard.setAttribute('data-video-src', embedURL);
+        movieCard.setAttribute('data-video-title', name);
+        movieCard.innerHTML = `
+          <div class="video-wrapper">
+            <iframe src="${embedURL}" allow="fullscreen" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="movie-info">
+            <div class="movie-title">${name}</div>
+            ${quality ? `<div class="movie-quality">${quality}</div>` : ''}
+          </div>
+        `;
+
+        movieCard.addEventListener('click', () => {
+          pinVideo(videoId, embedURL, name);
+        });
+
+        return movieCard;
+      }
+
+      /**
+       * Check if cached data is still valid
+       * @returns {boolean} True if cache is valid, false otherwise
+       */
+      function isCacheValid() {
+        const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
+        if (!timestamp) {
+          console.log('No cache timestamp found');
+          return false;
+        }
+        const currentTime = new Date().getTime();
+        const isValid = currentTime - parseInt(timestamp) < CACHE_EXPIRY;
+        console.log('Cache valid:', isValid);
+        return isValid;
+      }
+
+      /**
+       * Compare two video objects to check for differences
+       * @param {Object} videoA - First video object
+       * @param {Object} videoB - Second video object
+       * @returns {boolean} True if videos are different
+       */
+      function areVideosDifferent(videoA, videoB) {
+        return videoA['Name'] !== videoB['Name'] ||
+               videoA['1080p'] !== videoB['1080p'] ||
+               videoA['720p'] !== videoB['720p'] ||
+               videoA['480p'] !== videoB['480p'];
+      }
+
+      /**
+       * Render videos to the grid
+       * @param {Array} data - Array of video objects
+       * @param {number} startIndex - Starting index for rendering
+       * @param {number} count - Number of videos to render
+       * @param {boolean} prepend - Whether to prepend (for new videos) or append (for scroll)
+       */
+      function renderVideos(data, startIndex = 0, count = INITIAL_LOAD_COUNT, prepend = false) {
+        hideLoadingIndicator();
+        const endIndex = Math.min(startIndex + count, data.length);
+        const fragment = document.createDocumentFragment();
+
+        // Reverse data to show latest videos first
+        const videosToRender = data.slice(startIndex, endIndex).reverse();
+        videosToRender.forEach((video, index) => {
+          const card = createVideoCard(video, startIndex + index);
+          if (card) {
+            fragment.appendChild(card);
+          }
+        });
+
+        if (prepend) {
+          moviesGrid.prepend(fragment); // Add new videos at the top
+        } else {
+          moviesGrid.appendChild(fragment); // Add more videos at the bottom
+        }
+        loadedVideoCount = endIndex;
+
+        if (moviesGrid.children.length === 0) {
+          displayError('No playable videos found in the data');
+        }
+      }
+
+      /**
+       * Load more videos when scrolling
+       */
+      function loadMoreVideos() {
+        if (loadedVideoCount >= currentVideos.length) {
+          console.log('All videos loaded');
+          hideLoadingIndicator();
+          return;
+        }
+
+        showLoadingIndicator();
+        renderVideos(currentVideos, loadedVideoCount, LOAD_MORE_COUNT, false);
+        console.log(`Loaded ${loadedVideoCount} of ${currentVideos.length} videos`);
+      }
+
+      /**
+       * Detect scroll to load more videos
+       */
+      function handleScroll() {
+        const scrollPosition = window.innerHeight + window.scrollY;
+        const pageHeight = document.documentElement.scrollHeight;
+
+        // Load more videos when user is within 200px of the bottom
+        if (scrollPosition >= pageHeight - 200) {
+          loadMoreVideos();
+        }
+      }
+
+      /**
+       * Fetch videos from API with retry mechanism
+       * @param {number} retries - Number of retries left
+       */
+      function fetchVideos(retries = MAX_RETRIES) {
+        console.log(`Fetching data from API (Retries left: ${retries}):`, apiUrl);
+        showLoadingIndicator();
+        fetch(apiUrl)
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+          })
+          .then(data => {
+            console.log('API data received:', data);
+            if (!data || !Array.isArray(data) || data.length === 0) {
+              throw new Error('No videos found in API response');
+            }
+
+            // Identify new videos by comparing with currentVideos
+            const newVideos = data.filter(newVideo => {
+              return !currentVideos.some(oldVideo => !areVideosDifferent(newVideo, oldVideo));
+            });
+
+            if (newVideos.length > 0) {
+              console.log(`Found ${newVideos.length} new or updated videos`);
+              currentVideos = [...data]; // Update currentVideos with new data
+              localStorage.setItem(VIDEO_CACHE_KEY, JSON.stringify(currentVideos));
+              localStorage.setItem(CACHE_TIMESTAMP_KEY, new Date().getTime().toString());
+
+              // Render only the new videos at the top
+              renderVideos(newVideos, 0, newVideos.length, true);
+            } else {
+              console.log('No new or updated videos found');
+            }
+
+            hideLoadingIndicator();
+          })
+          .catch(error => {
+            console.error('Fetch error:', error);
+            if (retries > 0) {
+              console.log(`Retrying... (${retries - 1} retries left)`);
+              setTimeout(() => fetchVideos(retries - 1), 2000);
+            } else {
+              displayError(
+                error.message.includes('Failed to fetch') ?
+                'Network connection error' :
+                error.message || 'Error loading video content'
+              );
+            }
+          });
+      }
+
+      /**
+       * Load videos from cache or API
+       */
+      function loadVideos() {
+        showLoadingIndicator();
+        const cachedData = localStorage.getItem(VIDEO_CACHE_KEY);
+        if (cachedData && isCacheValid()) {
+          console.log('Attempting to load from cache');
+          try {
+            const data = JSON.parse(cachedData);
+            if (data && Array.isArray(data) && data.length > 0) {
+              console.log('Cached data loaded:', data.length, 'videos');
+              currentVideos = data;
+              renderVideos(data, 0, INITIAL_LOAD_COUNT, false);
+
+              const pinnedVideo = localStorage.getItem(PINNED_VIDEO_KEY);
+              if (pinnedVideo) {
+                try {
+                  const { videoId, videoSrc, videoTitle } = JSON.parse(pinnedVideo);
+                  console.log('Restoring pinned video:', videoTitle);
+                  pinVideo(videoId, videoSrc, videoTitle);
+                } catch (e) {
+                  console.error('Error restoring pinned video:', e);
+                }
+              }
+
+              return;
+            } else {
+              console.warn('Cached data is empty or invalid');
+            }
+          } catch (e) {
+            console.error('Error parsing cached data:', e);
+            localStorage.removeItem(VIDEO_CACHE_KEY);
+            localStorage.removeItem(CACHE_TIMESTAMP_KEY);
+          }
+        }
+
+        fetchVideos();
+      }
+
+      /**
+       * Start live updates
+       */
+      function startLiveUpdates() {
+        setInterval(() => {
+          console.log('Checking for updates...');
+          fetchVideos();
+        }, UPDATE_INTERVAL);
+      }
+
+      // Event Listeners
+      closePinnedBtn.addEventListener('click', closePinnedVideo);
+      window.addEventListener('scroll', handleScroll);
+
+      // Initial load and start live updates
+      loadVideos();
+      startLiveUpdates();
+    });
+  </script>
+</body>
+</html>
